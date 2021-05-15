@@ -14,7 +14,9 @@ class Player:
 
 	def set_scenario(self, scenario_data):
 		self.data = scenario_data
-		arr_dep = list(scenario_data.values())[:self.nb_slow+self.nb_fast]
+		# pb pour créer cette liste
+		arr_dep = list(scenario_data.to_numpy())[:self.nb_slow+self.nb_fast]
+		print(arr_dep)
 		self.depart = {"slow": [d[1] for d in arr_dep[:self.nb_slow]], "fast": [d[1] for d in arr_dep[self.nb_slow:self.nb_fast+self.nb_slow]]}
 		self.arrival = {"slow": [d[0] for d in arr_dep[:self.nb_slow]], "fast": [d[0] for d in arr_dep[self.nb_slow:self.nb_fast+self.nb_slow]]}
 
@@ -23,46 +25,49 @@ class Player:
 
 	def compute_all_load(self):
 		load = np.zeros(self.horizon)
-		for time in range(self.horizon):
-			load[time] = self.compute_load(time)
+		load = self.take_decision(0) # on n'utilise pas l'argument time
+		#for time in range(self.horizon):
+		#	load[time] = self.compute_load(time)
 		return load
 
 	def take_decision(self, time):
 
-		# Sorting time by price (lowest to highest)
+		# Sorting time index by price (lowest to highest)
 		sorted_time_by_price = np.zeros(self.horizon)
-		s=np.copy(self.prices)
+		s = np.copy(self.prices)
 		for i in range(self.horizon):
-			max=0
-			indice=0
+			maxi = 0
+			indice = 0
 			for j in range(self.horizon):
-				if s[j]>=max:
-					max=self.prices[j]
-					indice=j
-			sorted_time_by_price[self_horizon-i-1]=indice
-			s[indice]=-1
+				if s[j] >= maxi:
+					maxi = self.prices[j]
+					indice = j
+			sorted_time_by_price[self.horizon-i-1] = indice
+			s[indice] = -1
 
 
+		############## V1G CASE (no reinjection)
 
 		for k in range(self.nb_slow):
-			charge_restante=10
-			i=0
-			while(charge_restante>0):
-				if sorted_time_by_price[i]<self.depart[k] and load[sorted_time_by_price[i]]<40:
-					load[sorted_time_by_price[i]] = min(min(charge_restante,3),40-load[sorted_time_by_price[i]])
-					charge_restante = charge_restante-min(min(charge_restante,3),40-load[sorted_time_by_price[i]])
-				i+=1
+			charge_restante = 10
+			i = 0
+			while charge_restante > 0:
+				if sorted_time_by_price[i] < self.depart[k] and load[sorted_time_by_price[i]] < 40:
+					load[sorted_time_by_price[i]] += 0.95 * min(min(charge_restante, 3), 40-load[sorted_time_by_price[i]])
+					charge_restante -= 0.95 * min(min(charge_restante, 3), 40-load[sorted_time_by_price[i]])
+				i += 1
 
 		for k in range(self.nb_fast):
-			charge_restante=10
-			i=0
-			while(charge_restante>0):
-				if sorted_time_by_price[i]<self.depart[self.nb_slow + k] and load[sorted_time_by_price[i]]<40:
-					load[sorted_time_by_price[i]] = min(min(charge_restante,10),40-load[sorted_time_by_price[i]])
-					charge_restante = charge_restante-min(min(charge_restante,10),40-load[sorted_time_by_price[i]])
-				i+=1
+			charge_restante = 10
+			i = 0
+			while charge_restante > 0:
+				if sorted_time_by_price[i] < self.depart[self.nb_slow + k] and load[sorted_time_by_price[i]] < 40:
+					load[sorted_time_by_price[i]] += 0.95 * min(min(charge_restante, 10), 40-load[sorted_time_by_price[i]])
+					charge_restante -= 0.95 * min(min(charge_restante, 10), 40-load[sorted_time_by_price[i]])
+				i += 1
+		##################
 
-		return 0
+		return load
 
 	def compute_load(self, time):
 		load = self.take_decision(time)
@@ -76,8 +81,10 @@ class Player:
 scenario_data = pandas.read_csv("ev_scenarios.csv")
 prices = np.random.rand(48)
 
+
 P = Player()
 P.__init__()
 P.set_scenario(scenario_data)
+
 P.set_prices(prices)
 load = P.compute_all_load()
