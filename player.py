@@ -3,9 +3,6 @@
 import numpy as np
 import pandas
 
-# test
-scenario_data = pandas.read_csv(ev_scenarios.csv)
-
 class Player:
 
 	def __init__(self):
@@ -75,3 +72,12 @@ class Player:
 	def reset(self):
 		# reset all observed data
 		pass
+
+scenario_data = pandas.read_csv("ev_scenarios.csv")
+prices = np.random.rand(48)
+
+P = Player()
+P.__init__()
+P.set_scenario(scenario_data)
+P.set_prices(prices)
+load = P.compute_all_load()
