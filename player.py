@@ -20,7 +20,6 @@ class Player:
 		arr = np.array(scenario_data["time_slot_arr"])[:self.nb_slow+self.nb_fast]
 		self.depart = {"slow": [d for d in dep[:self.nb_slow]], "fast": [d for d in dep[self.nb_slow:self.nb_fast+self.nb_slow]]}
 		self.arrival = {"slow": [d for d in arr[:self.nb_slow]], "fast": [d for d in arr[self.nb_slow:self.nb_fast+self.nb_slow]]}
-
 	def set_prices(self, prices):
 		self.prices = prices
 
@@ -32,9 +31,9 @@ class Player:
 		return load
 
 	def take_decision(self, time):
-
+		load = np.zeros(self.horizon)
 		# Sorting time index by price (lowest to highest)
-		sorted_time_by_price = np.zeros(self.horizon)
+		sorted_time_by_price = np.zeros(self.horizon, dtype=int)
 		s = np.copy(self.prices)
 		for i in range(self.horizon):
 			maxi = 0
@@ -43,17 +42,15 @@ class Player:
 				if s[j] >= maxi:
 					maxi = self.prices[j]
 					indice = j
-			sorted_time_by_price[self.horizon-i-1] = indice
+			sorted_time_by_price[self.horizon-i-1] = int(indice)
 			s[indice] = -1
-
-
 		############## V1G CASE (no reinjection)
 
 		for k in range(self.nb_slow):
 			charge_restante = 10
 			i = 0
-			while charge_restante > 0:
-				if sorted_time_by_price[i] < self.depart[k] and load[sorted_time_by_price[i]] < 40:
+			while charge_restante > 0 and i < 48 :
+				if sorted_time_by_price[i] < self.depart["slow"][k] and load[sorted_time_by_price[i]] < 40:
 					load[sorted_time_by_price[i]] += 0.95 * min(min(charge_restante, 3), 40-load[sorted_time_by_price[i]])
 					charge_restante -= 0.95 * min(min(charge_restante, 3), 40-load[sorted_time_by_price[i]])
 				i += 1
@@ -61,8 +58,8 @@ class Player:
 		for k in range(self.nb_fast):
 			charge_restante = 10
 			i = 0
-			while charge_restante > 0:
-				if sorted_time_by_price[i] < self.depart[self.nb_slow + k] and load[sorted_time_by_price[i]] < 40:
+			while charge_restante > 0 and i < 48 :
+				if sorted_time_by_price[i] < self.depart["fast"][k] and load[sorted_time_by_price[i]] < 40:
 					load[sorted_time_by_price[i]] += 0.95 * min(min(charge_restante, 10), 40-load[sorted_time_by_price[i]])
 					charge_restante -= 0.95 * min(min(charge_restante, 10), 40-load[sorted_time_by_price[i]])
 				i += 1
@@ -85,6 +82,6 @@ prices = np.random.rand(48)
 P = Player()
 P.__init__()
 P.set_scenario(scenario_data)
-
 P.set_prices(prices)
 load = P.compute_load(0)
+print(load)
