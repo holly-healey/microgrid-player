@@ -15,10 +15,11 @@ class Player:
 	def set_scenario(self, scenario_data):
 		self.data = scenario_data
 		# pb pour créer cette liste
-		arr_dep = list(scenario_data.to_numpy())[:self.nb_slow+self.nb_fast]
-		print(arr_dep)
-		self.depart = {"slow": [d[1] for d in arr_dep[:self.nb_slow]], "fast": [d[1] for d in arr_dep[self.nb_slow:self.nb_fast+self.nb_slow]]}
-		self.arrival = {"slow": [d[0] for d in arr_dep[:self.nb_slow]], "fast": [d[0] for d in arr_dep[self.nb_slow:self.nb_fast+self.nb_slow]]}
+		ev_id = np.array(scenario_data["ev_id"])[:self.nb_slow+self.nb_fast]
+		dep = np.array(scenario_data["time_slot_dep"])[:self.nb_slow+self.nb_fast]
+		arr = np.array(scenario_data["time_slot_arr"])[:self.nb_slow+self.nb_fast]
+		self.depart = {"slow": [d for d in dep[:self.nb_slow]], "fast": [d for d in dep[self.nb_slow:self.nb_fast+self.nb_slow]]}
+		self.arrival = {"slow": [d for d in arr[:self.nb_slow]], "fast": [d for d in arr[self.nb_slow:self.nb_fast+self.nb_slow]]}
 
 	def set_prices(self, prices):
 		self.prices = prices
@@ -78,13 +79,12 @@ class Player:
 		# reset all observed data
 		pass
 
-scenario_data = pandas.read_csv("ev_scenarios.csv")
+scenario_data = pandas.read_csv("ev_scenarios.csv", sep=";", decimal=".")
 prices = np.random.rand(48)
-
 
 P = Player()
 P.__init__()
 P.set_scenario(scenario_data)
 
 P.set_prices(prices)
-load = P.compute_all_load()
+load = P.compute_load(0)
