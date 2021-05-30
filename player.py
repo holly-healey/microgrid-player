@@ -3,6 +3,18 @@
 import numpy as np
 import pandas
 
+
+class Battery:
+
+	def __init__(self):
+		self.max_charge_slow = 3
+		self.max_charge_fast = 22
+		self.horizon = 48
+		self.nb_slow = 2
+		self.nb_fast = 2
+		self.charge = np.zeros((self.nb_slow + self.nb_fast, self.horizon))
+
+
 class Player:
 
 	def __init__(self):
@@ -31,6 +43,9 @@ class Player:
 		return load
 
 	def take_decision(self, time):
+		B = Battery()
+		B.__init__()
+
 		load = np.zeros(self.horizon)
 		# Sorting time index by price (lowest to highest)
 		sorted_time_by_price = np.zeros(self.horizon, dtype=int)
@@ -44,8 +59,10 @@ class Player:
 					indice = j
 			sorted_time_by_price[self.horizon-i-1] = int(indice)
 			s[indice] = -1
-		############## V1G CASE (no reinjection)
 
+		print(sorted_time_by_price)
+		
+		############## V1G CASE (no reinjection)
 		for k in range(self.nb_slow):
 			charge_restante = 10
 			i = 0
@@ -53,6 +70,7 @@ class Player:
 				if sorted_time_by_price[i] < self.depart["slow"][k] and load[sorted_time_by_price[i]] < 40:
 					load[sorted_time_by_price[i]] += 0.95 * min(min(charge_restante, 3), 40-load[sorted_time_by_price[i]])
 					charge_restante -= 0.95 * min(min(charge_restante, 3), 40-load[sorted_time_by_price[i]])
+					B.charge[k, sorted_time_by_price[i]] += 0.95 * min(min(charge_restante, 3), 40-load[sorted_time_by_price[i]])
 				i += 1
 
 		for k in range(self.nb_fast):
@@ -62,8 +80,16 @@ class Player:
 				if sorted_time_by_price[i] < self.depart["fast"][k] and load[sorted_time_by_price[i]] < 40:
 					load[sorted_time_by_price[i]] += 0.95 * min(min(charge_restante, 10), 40-load[sorted_time_by_price[i]])
 					charge_restante -= 0.95 * min(min(charge_restante, 10), 40-load[sorted_time_by_price[i]])
+					B.charge[self.nb_slow + k, sorted_time_by_price[i]] += 0.95 * min(min(charge_restante, 3), 40-load[sorted_time_by_price[i]])
 				i += 1
 		##################
+
+		############## V2G CASE (reinjection)
+		#for i in range(self.horizon):
+		#	for k in range(self.nb_slow):
+		#		if B.charge[k, sorted_time_by_price[i]] < B.max_charge_slow and load[sorted_time_by_price[i]] < 40 and sorted_time_by_price[i] < self.depart["slow"][k]:
+		#			b = 0
+		#################
 
 		return load
 
@@ -76,12 +102,15 @@ class Player:
 		# reset all observed data
 		pass
 
-scenario_data = pandas.read_csv("ev_scenarios.csv", sep=";", decimal=".")
-prices = np.random.rand(48)
 
-P = Player()
-P.__init__()
-P.set_scenario(scenario_data)
-P.set_prices(prices)
-load = P.compute_load(0)
-print(load)
+
+if __name__ == '__main__':
+	scenario_data = pandas.read_csv("ev_scenarios.csv", sep=";", decimal=".")
+	prices = np.random.rand(48)
+
+	P = Player()
+	P.set_scenario(scenario_data)
+	P.set_prices(prices)
+	load = P.compute_load(0)
+
+	print(load)
